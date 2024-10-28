@@ -1,0 +1,139 @@
+﻿@* @model List<ImageSearchApp.Models.PexelsImage>
+
+@{
+    ViewData["Title"] = "Search Images";
+}
+
+<div class="text-center">
+    <h1 class="mb-4">Search for Images</h1>
+
+    <form asp-action="Index" method="get" class="d-flex justify-content-center">
+        <input type="text" name="keyword" placeholder="Enter keyword..." class="form-control w-50" required />
+        <button type="submit" class="btn btn-primary ms-2">Search</button>
+    </form>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="d-flex flex-wrap justify-content-center mt-4">
+        @foreach (var image in Model)
+        {
+            <div class="image-container position-relative m-2">
+                <img src="@image.SrcMedium" class="img-fluid" alt="Image" loading="lazy">
+                <div class="overlay">
+                    <div class="overlay-text">
+                        <p class="photographer-name">@image.Photographer</p>
+                        <a asp-action="Detail" asp-route-srcLarge="@image.SrcLarge" asp-route-photographer="@image.Photographer" asp-route-url="@image.Url" class="btn btn-outline-light view-details">View Details</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="text-center mt-4">
+        <form asp-action="Index" method="get">
+            <input type="hidden" name="keyword" value="@ViewBag.Keyword" />
+            <input type="hidden" name="page" value="@((int)ViewBag.Page + 1)" />
+            <button type="submit" class="btn btn-outline-success">Load More</button>
+        </form>
+    </div>
+}
+else if (Model != null)
+{
+    <div class="alert alert-warning text-center mt-4">
+        No results found. Try another keyword!
+    </div>
+}
+ *@
+@model List<ImageSearchApp.Models.PexelsImage>
+
+@{
+    ViewData["Title"] = "Search Images";
+}
+
+<div class="text-center">
+    <h1 class="mb-4">Search for Images</h1>
+
+    <form asp-action="Index" method="get" class="d-flex justify-content-center">
+        <input type="text" name="keyword" placeholder="Enter keyword..." class="form-control w-50" required />
+        <button type="submit" class="btn btn-primary ms-2">Search</button>
+    </form>
+</div>
+
+<div id="imageContainer" class="d-flex flex-wrap justify-content-center mt-4">
+    @foreach (var image in Model)
+    {
+        <div class="image-container position-relative m-2">
+            <img src="@image.SrcMedium" class="img-fluid" alt="Image" loading="lazy">
+            <div class="overlay">
+                <div class="overlay-text">
+                    <p class="photographer-name">@image.Photographer</p>
+                    <a asp-action="Detail" 
+                        asp-route-srcLarge="@image.SrcLarge" 
+                        asp-route-photographer="@image.Photographer" 
+                        asp-route-url="@image.Url" 
+                        class="btn btn-outline-light view-details">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div id="loading" class="text-center mt-4" style="display: none;">
+    <p>Loading...</p>
+</div>
+
+@section Scripts {
+    <script>
+        let currentPage = @ViewBag.Page;
+        const keyword = '@ViewBag.Keyword';
+        const imageContainer = document.getElementById('imageContainer');
+        const loading = document.getElementById('loading');
+        let isLoading = false;
+
+        async function loadMoreImages() {
+            if (isLoading) return;
+            isLoading = true;
+            loading.style.display = 'block';
+
+            // Thêm thời gian chờ 1.5 giây
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(`/ImageSearch/LoadMoreImages?keyword=${encodeURIComponent(keyword)}&page=${currentPage + 1}`);
+                    const newImages = await response.json();
+
+                    if (newImages.length > 0) {
+                        currentPage++;
+                        newImages.forEach(image => {
+                            const imageElement = document.createElement('div');
+                            imageElement.className = 'image-container position-relative m-2';
+                            imageElement.innerHTML = `
+                                    <img src="${image.srcMedium}" class="img-fluid" alt="Image" loading="lazy">
+                                    <div class="overlay">
+                                        <div class="overlay-text">
+                                            <p class="photographer-name">${image.photographer}</p>
+                                            <a href="/ImageSearch/Detail?srcLarge=${encodeURIComponent(image.srcLarge)}&photographer=${encodeURIComponent(image.photographer)}&url=${encodeURIComponent(image.url)}" class="btn btn-outline-light view-details">View Details</a>
+                                        </div>
+                                    </div>
+                                `;
+                            imageContainer.appendChild(imageElement);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error loading more images:", error);
+                } finally {
+                    isLoading = false;
+                    loading.style.display = 'none';
+                }
+            }, 2000);
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+                loadMoreImages();
+            }
+        });
+    </script>
+}
