@@ -1,6 +1,7 @@
 ﻿using ImageSearchApp.Models;
 using ImageSearchApp.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Xml.Linq;
 
 namespace ImageSearchApp.Controllers
 {
@@ -47,6 +48,25 @@ namespace ImageSearchApp.Controllers
         {
             var images = await _pexelsService.SearchImagesAsync(keyword, page);
             return Json(images);
+        }
+
+        // Tải ảnh về
+        public async Task<IActionResult> DownloadImage(string url)
+        {
+            using var client = new HttpClient();
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                return NotFound();
+            }
+
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+            var fileName = Path.GetFileName(url);
+
+            fileName = fileName.Split('?')[0];
+
+            return File(content, contentType, fileName);
         }
     }
 }
